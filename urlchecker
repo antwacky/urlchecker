@@ -1,0 +1,80 @@
+#!/usr/bin/env python
+
+import argparse
+import threading
+import queue
+import sys
+
+SUCCESS = '\x1b[6;30;42msuccess\x1b[0m'
+ERROR = '\x1b[0;30;41mfailure\x1b[0m'
+
+def _worker(q, lock, quiet):
+
+    while True:
+
+        if q.qsize() == 0:
+            return
+
+        url = q.get()
+
+        if sys.version_info >= (3, 0):
+
+            try:
+                response = urllib.request.urlopen(url)
+            except urllib.error.HTTPError:
+                lock.acquire()
+                print('{:10s} => {:50s}'.format(ERROR, url))
+                lock.release()
+                continue
+
+        else:
+
+            try:
+                urllib2.urlopen(url)
+            except urllib2.HTTPError:
+                lock.acquire()
+                print('{:10s} => {:50s}'.format(ERROR, url))
+                lock.release()
+                continue
+
+        if not quiet:
+            lock.acquire()
+            print('{:10s} => {:50s}'.format(SUCCESS, url))
+            lock.release()
+
+    return
+
+def _main(args):
+
+    in_q = queue.Queue()
+    [ in_q.put(line.strip()) for line in open(args.input).readlines() ]
+
+    lock = threading.Lock()
+    quiet = args.quiet
+
+    threads = []
+    for i in range(0, args.threads):
+        t = threading.Thread(target=_worker, args=(in_q, lock, quiet))
+        threads.append(t)
+        t.start()
+
+    for t in threads:
+        t.join()
+
+if __name__ == '__main__':
+
+    if sys.version_info >= (3, 0):
+        import urllib.request
+    else:
+        import urllib2
+
+    parser = argparse.ArgumentParser(description='Check for errors in URLs')
+    parser.add_argument('--input', '-i', type=str, dest='input', help='input URLs file', required=True)
+    parser.add_argument('--threads', '-t', type=int, dest='threads', default=20, help='threads to use')
+    parser.add_argument('--quiet', '-q', action='store_true', dest='quiet', default=False, help='hide successes')
+    args = parser.parse_args()
+
+    try:
+        _main(args)
+    except KeyboardInterrupt:
+        sys.exit(1)
