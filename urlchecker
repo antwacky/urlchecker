@@ -68,8 +68,8 @@ if __name__ == '__main__':
     else:
         import urllib2
 
-    parser = argparse.ArgumentParser(description='Check for errors in URLs')
-    parser.add_argument('--input', '-i', type=str, dest='input', help='input URLs file', required=True)
+    parser = argparse.ArgumentParser(description='Check for errors in urls')
+    parser.add_argument('--input', '-i', type=str, dest='input', help='input urls file (one url per line)', required=True)
     parser.add_argument('--threads', '-t', type=int, dest='threads', default=20, help='threads to use')
     parser.add_argument('--quiet', '-q', action='store_true', dest='quiet', default=False, help='hide successes')
     args = parser.parse_args()
