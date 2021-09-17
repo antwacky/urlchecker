@@ -18,17 +18,19 @@ def _worker(q, lock, quiet):
 
         data = q.get()
         description = data[0]
-        url = data[1]
+        target = data[1]
 
         if sys.version_info >= (3, 0):
 
             try:
-                response = urllib.request.urlopen(url)
+                response = urllib.request.urlopen(target)
             except urllib.error.HTTPError:
                 lock.acquire()
-                print('{:10s} => {:50s}'.format(ERROR, url, description))
+                print('{:10s} => {:50s}'.format(ERROR, target))
                 lock.release()
                 continue
+            except Exception as e:
+                print('{:10s} => {:50s}'.format(ERROR, target))
 
         else:
 
@@ -36,13 +38,15 @@ def _worker(q, lock, quiet):
                 urllib2.urlopen(url)
             except urllib2.HTTPError:
                 lock.acquire()
-                print('{:10s} => {:50s}'.format(ERROR, url, description))
+                print('{:10s} => {:50s}'.format(ERROR, target))
                 lock.release()
                 continue
+            except Exception as e:
+                print('{:10s} => {:50s}'.format(ERROR, target))
 
         if not quiet:
             lock.acquire()
-            print('{:10s} => {:50s}'.format(SUCCESS, url, description))
+            print('{:10s} => {:50s}'.format(SUCCESS, target))
             lock.release()
 
     return
@@ -75,7 +79,7 @@ if __name__ == '__main__':
         import urllib2
 
     parser = argparse.ArgumentParser(description='Check for errors in urls')
-    parser.add_argument('--input', '-i', type=str, dest='input', help='input urls file (one url per line)', required=True)
+    parser.add_argument('--input', '-i', type=str, dest='input', help='input csv file (description,url)', required=True)
     parser.add_argument('--threads', '-t', type=int, dest='threads', default=20, help='threads to use')
     parser.add_argument('--quiet', '-q', action='store_true', dest='quiet', default=False, help='hide successes')
     args = parser.parse_args()
