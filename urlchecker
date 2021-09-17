@@ -4,6 +4,7 @@ import argparse
 import threading
 import queue
 import sys
+import csv
 
 SUCCESS = '\x1b[6;30;42msuccess\x1b[0m'
 ERROR = '\x1b[0;30;41mfailure\x1b[0m'
@@ -15,7 +16,9 @@ def _worker(q, lock, quiet):
         if q.qsize() == 0:
             return
 
-        url = q.get()
+        data = q.get()
+        description = data[0]
+        url = data[1]
 
         if sys.version_info >= (3, 0):
 
@@ -23,7 +26,7 @@ def _worker(q, lock, quiet):
                 response = urllib.request.urlopen(url)
             except urllib.error.HTTPError:
                 lock.acquire()
-                print('{:10s} => {:50s}'.format(ERROR, url))
+                print('{:10s} => {:50s}'.format(ERROR, url, description))
                 lock.release()
                 continue
 
@@ -33,13 +36,13 @@ def _worker(q, lock, quiet):
                 urllib2.urlopen(url)
             except urllib2.HTTPError:
                 lock.acquire()
-                print('{:10s} => {:50s}'.format(ERROR, url))
+                print('{:10s} => {:50s}'.format(ERROR, url, description))
                 lock.release()
                 continue
 
         if not quiet:
             lock.acquire()
-            print('{:10s} => {:50s}'.format(SUCCESS, url))
+            print('{:10s} => {:50s}'.format(SUCCESS, url, description))
             lock.release()
 
     return
@@ -47,7 +50,10 @@ def _worker(q, lock, quiet):
 def _main(args):
 
     in_q = queue.Queue()
-    [ in_q.put(line.strip()) for line in open(args.input).readlines() ]
+
+    with open(args.input, newline='') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        [ in_q.put(row) for row in reader ]
 
     lock = threading.Lock()
     quiet = args.quiet
