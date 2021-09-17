@@ -1,10 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
 import threading
-import queue
 import sys
+import queue
 import csv
+import urllib.request
 
 SUCCESS = '\x1b[6;30;42msuccess\x1b[0m'
 ERROR = '\x1b[0;30;41mfailure\x1b[0m'
@@ -20,29 +21,14 @@ def _worker(q, lock, quiet):
         description = data[0]
         target = data[1]
 
-        if sys.version_info >= (3, 0):
+        try:
+            response = urllib.request.urlopen(target)
 
-            try:
-                response = urllib.request.urlopen(target)
-            except urllib.error.HTTPError:
-                lock.acquire()
-                print('{:10s} => {:50s}'.format(ERROR, target))
-                lock.release()
-                continue
-            except Exception as e:
-                print('{:10s} => {:50s}'.format(ERROR, target))
-
-        else:
-
-            try:
-                urllib2.urlopen(url)
-            except urllib2.HTTPError:
-                lock.acquire()
-                print('{:10s} => {:50s}'.format(ERROR, target))
-                lock.release()
-                continue
-            except Exception as e:
-                print('{:10s} => {:50s}'.format(ERROR, target))
+        except urllib.error.HTTPError:
+            lock.acquire()
+            print('{:10s} => {:50s}'.format(ERROR, target))
+            lock.release()
+            continue
 
         if not quiet:
             lock.acquire()
@@ -55,7 +41,7 @@ def _main(args):
 
     in_q = queue.Queue()
 
-    with open(args.input, newline='') as csvfile:
+    with open(args.input) as csvfile:
         reader = csv.reader(csvfile, delimiter=',', quotechar='|')
         [ in_q.put(row) for row in reader ]
 
@@ -72,11 +58,6 @@ def _main(args):
         t.join()
 
 if __name__ == '__main__':
-
-    if sys.version_info >= (3, 0):
-        import urllib.request
-    else:
-        import urllib2
 
     parser = argparse.ArgumentParser(description='Check for errors in urls')
     parser.add_argument('--input', '-i', type=str, dest='input', help='input csv file (description,url)', required=True)
