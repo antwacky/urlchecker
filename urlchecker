@@ -21,8 +21,10 @@ def _worker(q, lock, quiet):
         description = data[0]
         target = data[1]
 
+        req = urllib.request.Request(target, headers={'User-agent' : 'Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.9.1.5) Gecko/20091102 Firefox/3.5.5'})
+
         try:
-            response = urllib.request.urlopen(target)
+            response = urllib.request.urlopen(req)
 
         except urllib.error.HTTPError:
             lock.acquire()
@@ -42,7 +44,7 @@ def _main(args):
     in_q = queue.Queue()
 
     with open(args.input) as csvfile:
-        reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        reader = csv.reader(csvfile, delimiter=',', quotechar='"')
         [ in_q.put(row) for row in reader ]
 
     lock = threading.Lock()
